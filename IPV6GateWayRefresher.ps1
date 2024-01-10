@@ -1,6 +1,7 @@
 # 设置要监听的网络接口名
 $netName = "以太网"
 $logPath = Join-Path -Path $PSScriptRoot -ChildPath "log.txt"
+$url = "test6.ustc.edu.cn"
 
 function Clear-LargeFile {
     param (
@@ -39,6 +40,17 @@ while ($true) {
     try {
         # 获取网络接口的 Index
         $interfaceIndex = (Get-NetAdapter -Name $netName).ifIndex
+
+        # 先测试一下 ipv6 的连通性，如果不通，那么重启网卡
+        try {
+            $ping = Test-Connection -ComputerName $url -Count 1 -ErrorAction Stop
+            # 如果成功，不执行任何操作
+        }
+        catch {
+            Get-NetAdapter | Disable-NetAdapter -Confirm:$false
+            Start-Sleep -Seconds 8
+            Get-NetAdapter | Enable-NetAdapter -Confirm:$false
+        }
 
         # 获取默认网关的剩余有效时间
         $validLifetime = Get-NetRoute -AddressFamily IPv6 -InterfaceIndex $interfaceIndex |
