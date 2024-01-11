@@ -25,12 +25,19 @@ function Clear-LargeFile {
 }
 
 # 开机等待联网后再运行
-Start-Sleep -Seconds 10
+Start-Sleep -Seconds 2
 
 # 断网再联网，解决莫名其妙的问题，怀疑原因在网关那里
-Get-NetAdapter | Disable-NetAdapter -Confirm:$false
-Start-Sleep -Seconds 8
-Get-NetAdapter | Enable-NetAdapter -Confirm:$false
+# 先测试一下 ipv6 的连通性，如果不通，那么重启网卡
+try {
+    $ping = Test-Connection -ComputerName $url -Count 1 -ErrorAction Stop
+    # 如果成功，不执行任何操作
+}
+catch {
+    Get-NetAdapter | Disable-NetAdapter -Confirm:$false
+    Start-Sleep -Seconds 6
+    Get-NetAdapter | Enable-NetAdapter -Confirm:$false
+}
 
 Clear-LargeFile -FilePath $logPath
 Add-Content -Path $logPath -Value "IPv6 Gateway Refresher started at $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")"
@@ -48,7 +55,7 @@ while ($true) {
         }
         catch {
             Get-NetAdapter | Disable-NetAdapter -Confirm:$false
-            Start-Sleep -Seconds 8
+            Start-Sleep -Seconds 6
             Get-NetAdapter | Enable-NetAdapter -Confirm:$false
         }
 
